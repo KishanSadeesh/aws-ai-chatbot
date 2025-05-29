@@ -72,3 +72,11 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/t
 
 ### 'amplify -v' to check version
 
+### 'npm i react-router-dom' to use the react-router-dom for navigating and connecting a link between pages
+
+I used chatscope/chat-ui-kit-react for a chatbot and here arethe installation commands : 
+### 'npm install @chatscope/chat-ui-kit-react' for Components
+### 'npm install @chatscope/chat-ui-kit-styles' for styles
+
+For installing AWS bedrock use the below command
+### 'npm install @aws-sdk/client-bedrock-runtime'
