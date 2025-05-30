@@ -10,6 +10,17 @@
       "StackName": "amplify-awsaichatbot-master-97507",
       "StackId": "arn:aws:cloudformation:ap-south-1:988839728996:stack/amplify-awsaichatbot-master-97507/f2253420-3bb1-11f0-81c9-0aeaa74be6b5",
       "AmplifyAppId": "d2loafmlz5ijdm"
+    },
+    "categories": {
+      "function": {
+        "aichatbot": {
+          "deploymentBucketName": "amplify-awsaichatbot-master-97507-deployment",
+          "s3Key": "amplify-builds/aichatbot-642b397478434a4d6371-build.zip"
+        }
+      },
+      "api": {
+        "aichatbot": {}
+      }
     }
   }
 }

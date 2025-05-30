@@ -3,6 +3,11 @@ import './App.css';
 import Homepage from './pages/Homepage';
 import ChatAI from './pages/chatAI';
 
+import { Amplify } from 'aws-amplify';
+import amplifyconfig from './amplifyconfiguration.json';
+
+Amplify.configure(amplifyconfig);
+
 function App() {
   return (
     <div className="App">

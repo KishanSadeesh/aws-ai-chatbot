@@ -80,7 +80,8 @@ white-space: normal;
 
 /* Ensure layout spacing is constrained */
 .cs-chat-container {
-  padding: 0 1rem !important; /* Adjust padding instead of margin */
+  padding: 0 1rem !important;
+  padding-bottom:  1rem; /* Adjust padding instead of margin */
 }
 
 
