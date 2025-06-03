@@ -32,12 +32,14 @@ const ChatAI = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+
   const handlesend = async (message) => {
     const newMessage = {
-      message,
+      message : message,
       sender: "user",
       direction: "outgoing",
     };
+    
     const updatedMessages = [...messages, newMessage];
     setMessages(updatedMessages);
     setTyping(true);
@@ -52,10 +54,10 @@ const ChatAI = () => {
         },
       });
       const { body } = await restOperation.response;
-      const json = await body.text();
+      const json = await body.json();
       console.log("GET call succeeded: ", json);
       const botMessage = {
-        message: json.trim(),
+        message: json.results[0].outputText.trim(),
         sender: "Chatbot",
         direction: "incoming",
       };
@@ -114,7 +116,7 @@ const ChatAI = () => {
             <ChatContainer>
               <MessageList
                 typingIndicator={
-                  typing ? <TypingIndicator content="Bot is typing..." /> : null
+                  typing ? <TypingIndicator content="Bot is searching..." /> : null
                 }
               >
                 {messages.map((message, i) => (

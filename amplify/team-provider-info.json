@@ -15,7 +15,7 @@
       "function": {
         "aichatbot": {
           "deploymentBucketName": "amplify-awsaichatbot-master-97507-deployment",
-          "s3Key": "amplify-builds/aichatbot-642b397478434a4d6371-build.zip"
+          "s3Key": "amplify-builds/aichatbot-465a4b5251643637626c-build.zip"
         }
       },
       "api": {

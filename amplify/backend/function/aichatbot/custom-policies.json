@@ -1,6 +1,11 @@
 [
   {
-    "Action": [],
-    "Resource": []
+    "Action": ["dynamodb:GetItem"],
+    "Resource": ["arn:aws:dynamodb:ap-south-1:988839728996:table/Intern_Sample_Table"]
+  },
+  {
+    "Action": ["bedrock:InvokeModel"],
+    "Resource": ["arn:aws:bedrock:ap-south-1::foundation-model/amazon.titan-text-express-v1"]
   }
 ]
+
