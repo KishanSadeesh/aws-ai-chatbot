@@ -2,13 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
 import "../styles/chatAI.css"; // Assuming you have a CSS file for styling
-import {
-  MainContainer,
-  ChatContainer,
-  MessageList,
-  Message,
-  MessageInput,
-  TypingIndicator,
+import { 
+  MainContainer,  
+  ChatContainer, 
+  MessageList, 
+  Message, 
+  MessageInput,  
+  TypingIndicator, 
 } from "@chatscope/chat-ui-kit-react";
 import { get } from "aws-amplify/api";
 
@@ -16,8 +16,8 @@ const ChatAI = () => {
   const navigate = useNavigate();
   const gotohome = () => navigate("/");
 
-  const [typing, setTyping] = useState(false);
-  const [messages, setMessages] = useState([
+  const [typing, setTyping] = useState(false); 
+  const [messages, setMessages] = useState([ 
     {
       message: "Hello there! How can I assist you?",
       sender: "Chatbot",
@@ -55,9 +55,12 @@ const ChatAI = () => {
       });
       const { body } = await restOperation.response;
       const json = await body.json();
-      console.log("GET call succeeded: ", json);
+      const token_prompt = `Input Token: ${json.inputTextTokenCount}<br />${json.results[0].outputText.trim()} <br /><br />Output Token:  ${json.results[0].tokenCount}`;
+      // const txt = await body.text();
+      console.log("GET call succeeded: ", token_prompt);
       const botMessage = {
-        message: json.results[0].outputText.trim(),
+        //message: json.results[0].outputText.trim(),
+        message: token_prompt.trim(),
         sender: "Chatbot",
         direction: "incoming",
       };

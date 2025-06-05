@@ -9,7 +9,7 @@ const client = new BedrockRuntimeClient({
   region: "ap-south-1",
 });
 
-const invokeClaude = async (promptText) => {
+const invokeTitan = async (promptText) => {
   const command = new InvokeModelCommand({
     modelId: "amazon.titan-text-express-v1",
     contentType: "application/json",
@@ -21,7 +21,8 @@ const invokeClaude = async (promptText) => {
 
   const response = await client.send(command);
   const result = JSON.parse(new TextDecoder().decode(response.body));
-  return result.results[0].outputText.trim();
+  //return result.results[0].outputText.trim();
+  return result;
 };
 
 // const prompt_getid = async (userMessage) => {
@@ -32,8 +33,8 @@ const invokeClaude = async (promptText) => {
 // };
 
 const prompt_status = async (Message) => {
-  const result = await invokeClaude(Message);
-  console.log("Titan's Response for id:", result);
+  const result = await invokeTitan(Message);
+  console.log("Titan's Response: \n", result);
   return result;
 };
 
@@ -82,7 +83,7 @@ export const handler = async (event) => {
 
   try {
     const data = await ddbDocClient.send(new GetCommand(params));
-
+    console.log("Given data items in db : " ,data.Item);
     if (!data.Item) {
       return {
         statusCode: 404,
@@ -95,17 +96,19 @@ export const handler = async (event) => {
     }
 
     const prompt = `Based on this order info: Status ${data.Item.OrderStatus},id ${data.Item.id},Amount ${data.Item.Amount},OrderDate ${data.Item.OrderDate}, DeliveryDate ${data.Item.DeliveryDate} - what is the status and delivery of the order?`;
-    console.log("THis is the prompt: ",prompt);
+    console.log("This is the prompt: ",prompt);
     const bedrockResponse = await prompt_status(prompt);
-
+    //const bedrockResponse = JSON.stringify({"inputTextTokenCount":60,"results":[{"tokenCount":30,"outputText":"\nBased on the provided content, the order status is ordered and the delivery date is 16-06-2025.","completionReason":"FINISH"}]});
+    console.log("Bedrock Response : ", bedrockResponse);
     return {
       statusCode: 200,
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "*"
       },
-      //body: JSON.stringify(bedrockResponse),
-      body: JSON.stringify({ results: [{ outputText: bedrockResponse }] }),
+      body: bedrockResponse,
+      //body: JSON.stringify({ results: [{ outputText: bedrockResponse }] }),
+     // body: "Based on the provided order info, the order status is shipped and the delivery date is 03-06-2025.",
     };
   } catch (err) {
     console.error("Error fetching data:", err);
