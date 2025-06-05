@@ -123,15 +123,3 @@ white-space: normal;
 .cs-button--send:hover {
   background-color: #2ea043 !important;
 }
-
-.input_txt {
-  font-weight: bold;
-  color: #00ff99;
-  font-size: 14px;
-}
-
-.output_txt {
-  font-weight: bold;
-  color: #ffaa00;
-  font-size: 14px;
-}

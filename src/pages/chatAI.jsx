@@ -55,7 +55,8 @@ const ChatAI = () => {
       });
       const { body } = await restOperation.response;
       const json = await body.json();
-      const token_prompt = `Input Token: ${json.inputTextTokenCount}<br />${json.results[0].outputText.trim()} <br /><br />Output Token:  ${json.results[0].tokenCount}`;
+      console.log("Response from API: ", json);
+      const token_prompt = `Input Token: ${json.inputTextTokenCount}<br /><br />${json.results[0].outputText.trim()} <br /><br />Output Token:  ${json.results[0].tokenCount}`;
       // const txt = await body.text();
       console.log("GET call succeeded: ", token_prompt);
       const botMessage = {
