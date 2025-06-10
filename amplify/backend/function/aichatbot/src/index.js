@@ -39,7 +39,7 @@ export const handler = async (event) => {
   const decisionPrompt = `Analyze this message and decide the user's intent.
 If it is about a specific order, extract the order ID.
 If it's about total orders or similar, respond as:
-- {"action": "count_orders"} or {"action": "get_order", "id": "..."}
+- {"action": "count_orders"} or {"action": "get_order", "id": "..."} (Respond strictly in JSON)
 Message: "${userMessage}"`;
 
   const decisionText = await invokeTitan(decisionPrompt);
