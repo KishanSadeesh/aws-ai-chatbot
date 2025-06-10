@@ -1,4 +1,182 @@
-import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, ScanCommand} from '@aws-sdk/lib-dynamodb';
+
+const client_db = new DynamoDBClient();
+const ddbDocClient = DynamoDBDocumentClient.from(client_db);
+
+// Function to call DeepSeek API
+const invokedeepseek = async (prompt) => {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer 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",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "deepseek/deepseek-r1-0528:free",
+      messages: [
+        {
+          role: "user",
+          content: prompt
+        }
+      ]
+    })
+  });
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content?.trim() || "";
+};
+
+const detectIntentAndId = async (userMessage) => {
+  const prompt = `
+You are an intelligent assistant.
+
+Analyze the following user message:
+"${userMessage}"
+
+Determine the user's intent. Choose from:
+- "single_order": asking about a specific order
+- "list_orders": asking about all orders
+- "aggregate": asking for a summary (e.g., total amount)
+- "unknown": if it's unclear
+
+If an order ID is mentioned, extract it.
+
+Respond ONLY with JSON:
+{"intent": "<intent>", "id": "<id_or_empty_if_none>"}
+  `;
+
+  const responseText = await invokedeepseek(prompt);
+  console.log("DeepSeek Response for intent detection:", responseText);
+
+  try {
+    const parsed = JSON.parse(responseText);
+    return { intent: parsed.intent, id: parsed.id || null };
+  } catch (error) {
+    console.error("Failed to parse DeepSeek intent response:", error);
+    return { intent: "unknown", id: null };
+  }
+};
+
+// const extractIdFromMessage = async (userMessage) => {
+//   const prompt = `
+// Extract only the numeric ID from the following message. 
+// Respond ONLY with a JSON object in this format: {"id": "<id>"}.
+// Message: "${userMessage}"
+// `;
+
+//   const responseText = await invokedeepseek(prompt);
+//   console.log("DeepSeek Response for ID extraction:", responseText);
+
+//   try {
+//     const parsed = JSON.parse(responseText);
+//     return parsed.id || null;
+//   } catch (error) {
+//     console.error("Failed to parse DeepSeek ID response:", error);
+//     return null;
+//   }
+// };
+
+export const handler = async (event) => {
+  console.log(`EVENT: ${JSON.stringify(event)}`);
+  const userMsg = event.queryStringParameters.param;
+  const { intent, id } = await detectIntentAndId(userMsg);
+
+  console.log("Extracted Intent:", intent, "ID:", id);
+  /*const regex = /\d+/;
+  
+  const temp_id = str.match(regex);
+  const id = temp_id ? Number(temp_id).toString() : null;
+*/
+let dbData;
+
+  try {
+    if (intent === "single_order" && id) {
+      // Fetch specific order by ID
+      const data = await ddbDocClient.send(new GetCommand({
+        TableName: 'Intern_Sample_Table',
+        Key: { id: id },
+      }));
+
+      if (!data.Item) {
+        return {
+          statusCode: 404,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "*"
+          },
+          body: JSON.stringify({ message: "Order not found." }),
+        };
+      }
+
+      dbData = data.Item;
+
+    } else if (intent === "list_orders") {
+      // Fetch all orders
+      const data = await ddbDocClient.send(new ScanCommand({
+        TableName: 'Intern_Sample_Table'
+      }));
+
+      dbData = data.Items || [];
+
+    } else if (intent === "aggregate") {
+      // Fetch all orders to calculate summary
+      const data = await ddbDocClient.send(new ScanCommand({
+        TableName: 'Intern_Sample_Table'
+      }));
+
+      dbData = data.Items || [];
+
+    } else {
+      return {
+        statusCode: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "*"
+        },
+        body: JSON.stringify({ message: "Could not determine intent. Please rephrase your question." }),
+      };
+    }
+    const finalPrompt = `
+    You are a helpful assistant.
+    
+    The user asked: "${userMsg}".
+    
+    Here is the order data:
+    ${JSON.stringify(dbData)}
+    
+    Please provide a short, plain text answer to the user's question using this data.
+        `;
+    
+        console.log("Final prompt to DeepSeek:", finalPrompt);
+    
+        const deepseekResponse = await invokedeepseek(finalPrompt);
+    
+        console.log("Final DeepSeek Response:", deepseekResponse);
+    
+        return {
+          statusCode: 200,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "*"
+          },
+          body: JSON.stringify({ response: deepseekResponse }),
+        };
+    
+      } catch (err) {
+        console.error("Error handling request:", err);
+        return {
+          statusCode: 500,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "*"
+          },
+          body: JSON.stringify({ message: "Failed to process request." }),
+        };
+      }
+};
+
+/*import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 
@@ -122,6 +300,7 @@ export const handler = async (event) => {
     };
   }
 };
+*/
 
 /*import {
   BedrockRuntimeClient,
