@@ -18,7 +18,7 @@ const bedrockClient = new BedrockRuntimeClient({ region: "ap-south-1" });
 
 const invokeTitan = async (promptText) => {
   const command = new InvokeModelCommand({
-    modelId: "amazon.nova-micro-v1:0",
+    modelId: "amazon.titan-text-express-v1",
     contentType: "application/json",
     accept: "application/json",
     body: JSON.stringify({
