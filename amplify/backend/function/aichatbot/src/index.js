@@ -4,78 +4,88 @@ import { DynamoDBDocumentClient, GetCommand, ScanCommand} from '@aws-sdk/lib-dyn
 const client_db = new DynamoDBClient();
 const ddbDocClient = DynamoDBDocumentClient.from(client_db);
 
+const cleanJsonResponse = (responseText) => {
+  // Remove markdown code fences and language hints
+  return responseText.replace(/```json|```/g, '').trim();
+};
 // Function to call DeepSeek API
 const invokedeepseek = async (prompt) => {
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
-      "Authorization": "Bearer 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",
+      "Authorization": "Bearer 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",
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "deepseek/deepseek-r1-0528:free",
-      messages: [
+      "model": "deepseek/deepseek-r1-0528:free",
+      "messages": [
         {
-          role: "user",
-          content: prompt
+          "role": "user",
+          "content": prompt
         }
       ]
     })
   });
 
   const data = await response.json();
+  console.log("Extracted AI data : ",data);
   return data.choices?.[0]?.message?.content?.trim() || "";
 };
 
 const detectIntentAndId = async (userMessage) => {
   const prompt = `
-You are an intelligent assistant.
+You are an assistant.
 
-Analyze the following user message:
+Given this user message:
 "${userMessage}"
 
-Determine the user's intent. Choose from:
-- "single_order": asking about a specific order
-- "list_orders": asking about all orders
-- "aggregate": asking for a summary (e.g., total amount)
-- "unknown": if it's unclear
+Determine the user's intent (one of these: "single_order", "list_orders", "aggregate", "unknown").
+If there’s an order ID, extract it.
 
-If an order ID is mentioned, extract it.
-
-Respond ONLY with JSON:
+Respond with JSON:
 {"intent": "<intent>", "id": "<id_or_empty_if_none>"}
-  `;
+  `.trim();
 
   const responseText = await invokedeepseek(prompt);
   console.log("DeepSeek Response for intent detection:", responseText);
 
   try {
-    const parsed = JSON.parse(responseText);
-    return { intent: parsed.intent, id: parsed.id || null };
+    const cleaned = cleanJsonResponse(responseText);
+    const parsed = JSON.parse(cleaned);
+    return { intent: parsed.intent || "unknown", id: parsed.id || null };
   } catch (error) {
-    console.error("Failed to parse DeepSeek intent response:", error);
+    console.error("Failed to parse DeepSeek intent response:", error, "Response:", responseText);
     return { intent: "unknown", id: null };
   }
 };
 
-// const extractIdFromMessage = async (userMessage) => {
-//   const prompt = `
-// Extract only the numeric ID from the following message. 
-// Respond ONLY with a JSON object in this format: {"id": "<id>"}.
-// Message: "${userMessage}"
-// `;
+/*
+const ideprompt = async (userMessage) => {
+  const prompt = `
+  You are an assistant.
 
-//   const responseText = await invokedeepseek(prompt);
-//   console.log("DeepSeek Response for ID extraction:", responseText);
+  Given this user message:
+  "${userMessage}"
+  
+  Determine the user's intent (one of these: "single_order", "list_orders", "aggregate", "unknown").
+  If there’s an order ID, extract it.
+  
+  Respond with JSON:
+  {"intent": "<intent>", "id": "<id_or_empty_if_none>"}
+`.trim();
 
-//   try {
-//     const parsed = JSON.parse(responseText);
-//     return parsed.id || null;
-//   } catch (error) {
-//     console.error("Failed to parse DeepSeek ID response:", error);
-//     return null;
-//   }
-// };
+  const responseText = await invokedeepseek(prompt);
+  console.log("DeepSeek Response for ID extraction:", responseText);
+
+  try {
+    const parsed = JSON.parse(responseText);
+    return {intent : parsed.intent || "nothing.", id : parsed.id || null};
+  } catch (error) {
+    console.error("Failed to parse DeepSeek ID response:", error);
+    return null;
+  }
+};
+*/
 
 export const handler = async (event) => {
   console.log(`EVENT: ${JSON.stringify(event)}`);
@@ -117,7 +127,7 @@ let dbData;
         TableName: 'Intern_Sample_Table'
       }));
 
-      dbData = data.Items || [];
+      dbData = data.Items.map(item => ({ id: item.id })) || [];
 
     } else if (intent === "aggregate") {
       // Fetch all orders to calculate summary
@@ -125,7 +135,7 @@ let dbData;
         TableName: 'Intern_Sample_Table'
       }));
 
-      dbData = data.Items || [];
+      dbData = data.Items.map(item => ({ Amount: item.Amount })) || [];
 
     } else {
       return {
