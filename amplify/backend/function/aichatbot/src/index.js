@@ -13,7 +13,7 @@ const invokedeepseek = async (prompt) => {
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
-      "Authorization": "Bearer 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",
+      "Authorization": "Bearer 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",
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
