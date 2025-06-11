@@ -1,19 +1,26 @@
+// intent based static answer works good final dynomodb and deepseek r1
+// from kishansadeesh13@gmail.com
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, ScanCommand} from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 
 const client_db = new DynamoDBClient();
 const ddbDocClient = DynamoDBDocumentClient.from(client_db);
 
+const dataset = [
+  { id: 1, text: "We ship orders within 2‑3 business days." },
+  { id: 2, text: "You can return items within 30 days of purchase." },
+  { id: 3, text: "Our support email is nipurnait@gmail.com." },
+];
+
 const cleanJsonResponse = (responseText) => {
-  // Remove markdown code fences and language hints
   return responseText.replace(/```json|```/g, '').trim();
 };
-// Function to call DeepSeek API
+
 const invokedeepseek = async (prompt) => {
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
-      "Authorization": "Bearer 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",
+      "Authorization": "Bearer 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",
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
@@ -28,84 +35,90 @@ const invokedeepseek = async (prompt) => {
   });
 
   const data = await response.json();
-  console.log("Extracted AI data : ",data);
-  return data.choices?.[0]?.message?.content?.trim() || "";
+  const result = data.choices?.[0]?.message?.content?.trim() || "";
+  console.log("Extracted AI data: ", result);
+  return result;
 };
 
 const detectIntentAndId = async (userMessage) => {
   const prompt = `
-You are an assistant.
+  You are a helpful assistant.
 
-Given this user message:
-"${userMessage}"
-
-Determine the user's intent (one of these: "single_order", "list_orders", "aggregate", "unknown").
-If there’s an order ID, extract it.
-
-Respond with JSON:
-{"intent": "<intent>", "id": "<id_or_empty_if_none>"}
-  `.trim();
+  Given the following user message:
+  ${userMessage}
+  
+  Determine:
+  - The user's intent, which should be one of these: "single_order", "list_orders", "aggregate", "unknown".
+  - If there are one or more order IDs in the message, extract them as an array of strings. If none, leave the array empty.
+  
+  Respond in JSON format:
+  {
+    "intent": "<intent>",
+    "id": ["<id1>", "<id2>", "..."]
+  }
+`.trim();
 
   const responseText = await invokedeepseek(prompt);
   console.log("DeepSeek Response for intent detection:", responseText);
 
   try {
     const cleaned = cleanJsonResponse(responseText);
-    const parsed = JSON.parse(cleaned);
-    return { intent: parsed.intent || "unknown", id: parsed.id || null };
+    const jsonStart = cleaned.indexOf("{");
+    const jsonEnd = cleaned.lastIndexOf("}");
+    const jsonOnly = cleaned.substring(jsonStart, jsonEnd + 1);
+    const parsed = JSON.parse(jsonOnly);
+    console.log("parsed input : ", parsed);
+    return parsed;
   } catch (error) {
-    console.error("Failed to parse DeepSeek intent response:", error, "Response:", responseText);
-    return { intent: "unknown", id: null };
+    console.error("Invalid Intent JSON:", error, "Response:", responseText);
+    return { intent: "unknown", id: [] };
   }
 };
 
-/*
-const ideprompt = async (userMessage) => {
+const fetchOrdersByIds = async (mid) => {
+  const orders = [];
+
+  for (const id of mid) {
+    const data = await ddbDocClient.send(new GetCommand({
+      TableName: 'Intern_Sample_Table',
+      Key: { id: id }
+    }));
+
+    if (data.Item) {
+      orders.push(data.Item);
+    }
+  }
+
+  return orders;
+};
+
+const answerFromDataset = async (question) => {
+  const context = dataset.map(d => d.text).join("\n");
   const prompt = `
-  You are an assistant.
+You are a helpful assistant. 
+Use the following reference text: "${context}"
 
-  Given this user message:
-  "${userMessage}"
-  
-  Determine the user's intent (one of these: "single_order", "list_orders", "aggregate", "unknown").
-  If there’s an order ID, extract it.
-  
-  Respond with JSON:
-  {"intent": "<intent>", "id": "<id_or_empty_if_none>"}
-`.trim();
-
-  const responseText = await invokedeepseek(prompt);
-  console.log("DeepSeek Response for ID extraction:", responseText);
-
-  try {
-    const parsed = JSON.parse(responseText);
-    return {intent : parsed.intent || "nothing.", id : parsed.id || null};
-  } catch (error) {
-    console.error("Failed to parse DeepSeek ID response:", error);
-    return null;
-  }
+Answer this user question:
+"${question}"
+If the question is different from the following reference text, answer it directly.
+`;
+  return await invokedeepseek(prompt);
 };
-*/
 
 export const handler = async (event) => {
   console.log(`EVENT: ${JSON.stringify(event)}`);
   const userMsg = event.queryStringParameters.param;
-  const { intent, id } = await detectIntentAndId(userMsg);
+  const {intent, id} = await detectIntentAndId(userMsg);
 
-  console.log("Extracted Intent:", intent, "ID:", id);
-  /*const regex = /\d+/;
-  
-  const temp_id = str.match(regex);
-  const id = temp_id ? Number(temp_id).toString() : null;
-*/
-let dbData;
+  console.log("Extracted Intent : ",intent,"id : ",id);
+  let dbData;
 
   try {
-    if (intent === "single_order" && id) {
+    if (intent === "single_order" && id.length === 1) {
       // Fetch specific order by ID
       const data = await ddbDocClient.send(new GetCommand({
         TableName: 'Intern_Sample_Table',
-        Key: { id: id },
+        Key: { id: id[0] },
       }));
 
       if (!data.Item) {
@@ -115,76 +128,85 @@ let dbData;
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Headers": "*"
           },
-          body: JSON.stringify({ message: "Order not found." }),
+          body: JSON.stringify({ message: `Order with ID ${id[0]} not found.` }),
         };
       }
-
       dbData = data.Item;
 
+    } else if ((intent === "single_order" && id.length > 1) || (intent === "aggregate" && id && id.length > 0)) {
+      // Multiple orders
+      const orders = await fetchOrdersByIds(id);
+      if (orders.length === 0) {
+        return {
+          statusCode: 404,
+          headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*" },
+          body: JSON.stringify({ message: `Orders not found for IDs: ${id.join(", ")}` }),
+        };
+      }
+      dbData = orders;
+
     } else if (intent === "list_orders") {
-      // Fetch all orders
       const data = await ddbDocClient.send(new ScanCommand({
         TableName: 'Intern_Sample_Table'
       }));
-
-      dbData = data.Items.map(item => ({ id: item.id })) || [];
-
+      dbData = data.Items || [];
     } else if (intent === "aggregate") {
-      // Fetch all orders to calculate summary
       const data = await ddbDocClient.send(new ScanCommand({
         TableName: 'Intern_Sample_Table'
       }));
-
       dbData = data.Items.map(item => ({ Amount: item.Amount })) || [];
 
     } else {
+      const answer = await answerFromDataset(userMsg);
       return {
-        statusCode: 400,
+        statusCode: 200,
         headers: {
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Headers": "*"
         },
-        body: JSON.stringify({ message: "Could not determine intent. Please rephrase your question." }),
+        body: JSON.stringify({ response: answer }),
       };
     }
+
     const finalPrompt = `
-    You are a helpful assistant.
-    
-    The user asked: "${userMsg}".
-    
-    Here is the order data:
-    ${JSON.stringify(dbData)}
-    
-    Please provide a short, plain text answer to the user's question using this data.
-        `;
-    
-        console.log("Final prompt to DeepSeek:", finalPrompt);
-    
-        const deepseekResponse = await invokedeepseek(finalPrompt);
-    
-        console.log("Final DeepSeek Response:", deepseekResponse);
-    
-        return {
-          statusCode: 200,
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "*"
-          },
-          body: JSON.stringify({ response: deepseekResponse }),
-        };
-    
-      } catch (err) {
-        console.error("Error handling request:", err);
-        return {
-          statusCode: 500,
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "*"
-          },
-          body: JSON.stringify({ message: "Failed to process request." }),
-        };
-      }
+You are a helpful assistant.
+
+The user asked: "${userMsg}".
+
+Here is the order data:
+${JSON.stringify(dbData)}
+
+Please provide a short, plain text answer to the user's question using this data. If not answer directly.
+    `.trim();
+
+    console.log("Final prompt to DeepSeek:", finalPrompt);
+
+    const deepseekResponse = await invokedeepseek(finalPrompt);
+
+    console.log("Final DeepSeek Response:", deepseekResponse);
+
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*"
+      },
+      body: JSON.stringify({ response: deepseekResponse }),
+    };
+
+  } catch (err) {
+    console.error("Error handling request:", err);
+    return {
+      statusCode: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*"
+      },
+      body: JSON.stringify({ message: "Failed to process request." }),
+    };
+  }
 };
+
 
 /*import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
