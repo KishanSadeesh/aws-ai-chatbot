@@ -28,10 +28,10 @@ const ChatAI = () => {
   const bottomRef = useRef(null);
 
   // Auto-scroll to bottom when messages update
-  useEffect(() => {
+  
+useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
 
   const handlesend = async (message) => {
     const newMessage = {
@@ -39,6 +39,8 @@ const ChatAI = () => {
       sender: "user",
       direction: "outgoing",
     };
+
+    
     
     const updatedMessages = [...messages, newMessage];
     setMessages(updatedMessages);
@@ -93,7 +95,7 @@ const ChatAI = () => {
   };
 
   return (
-    <div
+    <div className="floating-chatbot"
       style={{
         display: "flex",
         justifyContent: "center",

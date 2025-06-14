@@ -1,64 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+}
+
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f9f9f9;
-    color: #323232;
-    
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(rgba(135, 197, 255, 0.77), rgb(25, 105, 159));
 }
 
-header {
-    background-color: rgb(76, 175, 80);
-    color: rgb(222, 218, 218);
-    padding: 1rem;
-    text-align: center;
-    justify-content: center;
+.header {
+  text-align: center;
+  padding: 40px 20px 20px;
+  color: white;
 }
 
-main {
-    padding: 2rem;
+.header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  font-weight: 700;
 }
 
-h1 {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
+.header p {
+  font-size: 1.1rem;
+  font-weight: 400;
 }
 
-h2{
-    color: whitesmoke;
+.main-content-home {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
 }
 
-p {
-    font-size: 1.2rem;
-    line-height: 1.6rem;
-    color: whitesmoke;
+.get-started {
+  background: white;
+  padding: 30px 40px;
+  border-radius: 15px;
+  box-shadow: 0 0 128px rgba(0, 0, 0, 0.1),
+              0 32px 64px -48px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  max-width: 420px;
+  width: 100%;
 }
 
-button {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 0.8rem 1.5rem;
-    font-size: 1rem;
-    cursor: pointer;
-    border-radius: 0.8rem;
-    transition: background-color 0.3s ease;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+.get-started h2 {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+  color: rgba(15, 112, 142, 0.935);
 }
 
-
-button:hover {
-    background-color: #45a049;
+.startbutton {
+  padding: 12px 24px;
+  font-size: 1rem;
+  background: rgba(15, 112, 142, 0.935);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
-button:active{
-    font-size: 0.93rem;
+
+.startbutton:hover {
+  background: rgba(15, 112, 142, 0.8);
 }
 
-footer {
-    background-color: #242424;
-    color: white;
-    text-align: center;
-    padding: 1rem;
-    position: fixed;
-    bottom: 0;
-    width: 100%;
+.footer {
+  text-align: center;
+  padding: 20px;
+  color: white;
+  font-size: 0.9rem;
 }
