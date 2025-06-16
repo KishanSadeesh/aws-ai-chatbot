@@ -5,6 +5,100 @@ import "../styles/chatAInew.css";
 import { get } from "aws-amplify/api";
 
 const ChatAInew = () => {
+  const cleanJsonResponse = (responseText) => {
+  return responseText.replace(/```json|```js|```/g, '').trim();
+};
+
+const padAmountInQuery = (code) => {
+  const match = code.match(/:amountValue['"]?\s*:\s*['"]?(\d+)['"]?/);
+  if (match) {
+    const rawAmount = match[1];
+    const padded = rawAmount.padStart(5, '0'); // Pads like 500 → "00500"
+    return code.replace(match[0], `:amountValue: "${padded}"`);
+  }
+  return code;
+};
+
+
+const generateQueryFromPrompt = async (userQuery) => {
+  const schemaDescription = `
+    Table: Intern_Sample_Table
+    Attributes:
+    - id (string, partition key)
+    - OrderStatus, Amount, OrderDate, DeliveryDate (strings)
+  `;
+
+  const prompt = `
+  You are a code assistant.
+  Given the DynamoDB schema and a user query, generate a valid JavaScript:
+
+  new QueryCommand({...})
+  OR
+  new ScanCommand({...})
+
+  Use AWS SDK v3 and plain JavaScript values compatible with @aws-sdk/lib-dynamodb (e.g., "Amount": "123", not {"N": "123"}).
+
+  Only return this one line of code wrapped in a JavaScript code block like:
+
+  \`\`\`js
+  new ScanCommand({...});
+  \`\`\`
+
+  DynamoDB Schema:
+  ${schemaDescription}
+
+  Instructions:
+- Always include all attributes (id, OrderStatus, Amount, OrderDate, DeliveryDate) in the query result, either by omitting ProjectionExpression or specifying it fully.
+- The result will be passed to an LLM, so complete context is needed.
+
+  User Query:
+  ${userQuery}
+  `.trim();
+
+  const responseText = await invokedeepseek(prompt);
+  console.log("Before Cleaning Raw Query Generated:", responseText);
+
+  const cleaned = cleanJsonResponse(responseText);
+
+  // ✅ Handle both QueryCommand and ScanCommand
+  const jsCode = cleaned.match(/new\s+(QueryCommand|ScanCommand)\s*\(([\s\S]*?)\);/);
+  
+
+  if (!jsCode) {
+    console.error("Could not extract QueryCommand or ScanCommand from AI response:", responseText);
+    throw new Error("Failed to extract valid query from AI response.");
+  }
+
+  // jsCode[1] = "QueryCommand" or "ScanCommand"
+  // jsCode[2] = the object inside the parentheses
+  let fixedCode = `new ${jsCode[1]}(${jsCode[2]});`;
+  fixedCode = padAmountInQuery(fixedCode);
+  console.log("Query generated:", fixedCode);
+
+  return fixedCode;
+};
+
+// id from kishansadeesh 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
+// another from kishansadeesh13 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
+//github id with using in kishan1331  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  
+// Send prompt to DeepSeek
+const invokedeepseek = async (prompt) => {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer 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",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "deepseek/deepseek-r1-0528:free",
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content?.trim() || "";
+};  
+
   const navigate = useNavigate();
   const gotohome = () => navigate("/");
 
@@ -41,20 +135,43 @@ const ChatAInew = () => {
     setTyping(true);
 
     try {
+      const rawQuery = await generateQueryFromPrompt(newMessage.message);
+      if (!rawQuery) throw new Error("Query generation failed");
+
       const restOperation = get({
         apiName: "aichatbot",
         path: "/items",
         options: {
           queryParams: {
-            param: newMessage.message,
+            param: JSON.stringify({ rawQuery }),
           },
         },
       });
 
       const { body } = await restOperation.response;
       const json = await body.json();
+      console.log("Response from API in front end :", json.response);
+const finalPrompt = `
+You are a helpful assistant. A user asked: "${newMessage.message}"
+
+You received this matching data from DynamoDB:
+${JSON.stringify(json.response, null, 2)}
+
+Please analyze the data and respond with:
+- A clear and concise answer to the user's question.
+- Include context (e.g., what the number represents).
+- Add units like "Rs." if it's money.
+- Mention relevant order info (e.g., date, ID) if helpful.
+- If the data is empty or unclear, explain why.
+- Do not include any code or Markdown — only a friendly, plain English reply.
+`.trim();
+
+
+
+      const finalResponse = await invokedeepseek(finalPrompt);
+      console.log("Final Response in front end :", finalResponse);
       const botMessage = {
-        message: json.response.replace(/\*\*/g, "").trim(),
+        message: finalResponse.replace(/\*\*/g, "").trim(),
         sender: "Chatbot",
         direction: "incoming",
       };

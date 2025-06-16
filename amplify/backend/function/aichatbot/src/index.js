@@ -1,5 +1,72 @@
-// intent based static answer works good final dynomodb and deepseek r1
+// Automatic query genaration using deepseek ai works good(final version of code)
 // from kishansadeesh13@gmail.com
+
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, QueryCommand, ScanCommand} from "@aws-sdk/lib-dynamodb";
+
+const client_db = new DynamoDBClient();
+const ddbDocClient = DynamoDBDocumentClient.from(client_db);
+const cleanJsonResponse = (responseText) => {
+  return responseText.replace(/```json|```js|```/g, '').trim();
+};
+export const handler = async (event) => {
+
+  console.log("Received event:", event);
+
+  try {
+    const paramStr = event?.queryStringParameters?.param;
+    if (!paramStr) throw new Error("Missing param");
+    console.log("Query params:", event.queryStringParameters);
+    const parsed = JSON.parse(paramStr); // { rawQuery: "..." }
+    const rawQuery = parsed.rawQuery;
+    if (!rawQuery) throw new Error("Missing rawQuery");
+    
+    const cleaned = cleanJsonResponse(rawQuery);
+    const jsCode = cleaned.match(/new\s+(QueryCommand|ScanCommand)\s*\(([\s\S]*?)\);/);
+if (!jsCode || !jsCode[1] || !jsCode[2]) {
+  throw new Error("Invalid QueryCommand or ScanCommand format");
+}
+
+const commandType = jsCode[1]; // "QueryCommand" or "ScanCommand"
+const commandBody = jsCode[2]; // e.g., { TableName: ..., FilterExpression: ..., ... }
+
+// Safely parse the object body using `eval` (cautious but necessary here due to AI-generated string)
+const commandInput = eval(`(${commandBody})`);
+
+let queryCommand;
+if (commandType === "QueryCommand") {
+  queryCommand = new QueryCommand(commandInput);
+} else if (commandType === "ScanCommand") {
+  queryCommand = new ScanCommand(commandInput);
+} else {
+  throw new Error("Unsupported command type: " + commandType);
+}
+
+const result = await ddbDocClient.send(queryCommand);
+console.log("Details fetched from db : ",result.Items);
+
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*",
+      },
+      body: JSON.stringify({
+        response: result.Items || [],
+      }),
+    };
+  } catch (err) {
+    console.error("Query or parsing error:", err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "Failed to process request.",
+      }),
+    };
+  }
+};
+/* 
+//old format previoss code worked with deepseek r1 only some types of questions
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 
@@ -205,4 +272,4 @@ Please provide a short, plain text answer to the user's question using this data
       body: JSON.stringify({ message: "Failed to process request." }),
     };
   }
-};
+};*/
