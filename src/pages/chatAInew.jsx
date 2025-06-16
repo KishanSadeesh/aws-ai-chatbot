@@ -48,8 +48,7 @@ const generateQueryFromPrompt = async (userQuery) => {
   ${schemaDescription}
 
   Instructions:
-- Always include all attributes (id, OrderStatus, Amount, OrderDate, DeliveryDate) in the query result, either by omitting ProjectionExpression or specifying it fully.
-- The result will be passed to an LLM, so complete context is needed.
+- If the question is about totals, stats, or rankings, include relevant info like Order ID and OrderDate.
 
   User Query:
   ${userQuery}
@@ -158,12 +157,14 @@ You received this matching data from DynamoDB:
 ${JSON.stringify(json.response, null, 2)}
 
 Please analyze the data and respond with:
-- A clear and concise answer to the user's question.
+- Answer the question clearly and use plain English.
+- If the question is about totals, stats, or rankings, include relevant info like Order ID and OrderDate.
 - Include context (e.g., what the number represents).
-- Add units like "Rs." if it's money.
-- Mention relevant order info (e.g., date, ID) if helpful.
-- If the data is empty or unclear, explain why.
-- Do not include any code or Markdown — only a friendly, plain English reply.
+- Do not mention any database, technical terms, or system details (like DynamoDB, schema, queries, etc.).
+- Mention Rupees sign(₹) for amounts.
+- Be concise but complete.
+- If data is missing or partial, say so.
+- Don't output code or markdown.
 `.trim();
 
 
