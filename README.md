@@ -1,82 +1,71 @@
-# Getting Started with Create React App
+# 🧠 AI-Powered Order Tracking Chatbot using AWS + React
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This project was developed during my internship at **Nipurna IT Solutions Pvt. Ltd.**, where I built a **smart AI-powered chatbot** that responds to natural language queries about order data in real-time.
 
-## Available Scripts
+The system integrates:
+- **React.js** for an interactive front-end UI
+- **AWS Lambda** + **API Gateway** for serverless backend logic
+- **DynamoDB** for real-time order data storage
+- **OpenRouter’s DeepSeek LLM** to convert natural language into executable DynamoDB queries
 
-In the project directory, you can run:
+Users can ask the chatbot things like:
+- “What’s the status of order 11?”
+- “Get me the recent shipped order.”
+- “Show orders with amount over 10,000.”
+- “Total of all orders placed this month.”
 
-### `npm start`
+🛠️ This chatbot automatically parses intent, generates a valid query (`QueryCommand` or `ScanCommand`), fetches the data from DynamoDB, and returns a human-like response — all in real time.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 💡 Why This Project Matters
 
-### `npm test`
+This project combines **AI**, **cloud computing**, and **frontend development** into one seamless workflow:
+- Automates customer support  
+- Demonstrates practical LLM usage for query generation  
+- Uses real AWS infrastructure (Lambda, DynamoDB, API Gateway)  
+- Hosted with **AWS Amplify**
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+It represents a real-world application of **AI+Cloud** for intelligent automation.
 
-### `npm run build`
+---                                                                     ---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 📸 Screenshots
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 1. Welcome Screen: 
+Clean responsive UI react page.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+![Welcome Screen](screenshots/Homepage.png)
 
 
-### 'amplify -v' to check version
+### 2. Chatbot Home Screen: 
+Clean responsive UI react page with navigation button too.
 
-### 'npm i react-router-dom' to use the react-router-dom for navigating and connecting a link between pages
+![Chatbot home screen](screenshots/Homepage1.png)
 
-I used chatscope/chat-ui-kit-react for a chatbot and here arethe installation commands : 
-### 'npm install @chatscope/chat-ui-kit-react' for Components
-### 'npm install @chatscope/chat-ui-kit-styles' for styles
+### 3. Real-Time Order Status Query example
+User asks: `"Get me the recent orders which is shipped"`  
+The chatbot responds with accurate, AI-generated details from DynamoDB.
 
-For installing AWS bedrock use the below command
-### 'npm install @aws-sdk/client-bedrock-runtime'
+![Order Details](screenshots/status3.png)
+
+---
+
+###  4. Total Amount of Orders
+Query: `"Get me the total orders sum?"`  
+Chatbot returns a calculated sum using a ScanCommand and AWS Lambda.
+
+![Total Orders](screenshots/status1.png)
+
+---
+
+### 5. Orders with specific amount
+Query: `"Get me the status of orders with maximum amount of 10000"`  
+Chatbot returns a list of orders using a QueryCommand and AWS Lambda.
+
+![List Orders](screenshots/status2.png)
+
+---
+
+
+Here is the hosted amplify link which is live website : https://main.d2loafmlz5ijdm.amplifyapp.com/
